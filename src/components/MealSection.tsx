@@ -7,9 +7,10 @@ interface MealSectionProps {
   title: string;
   emoji: string;
   accentColor: string;
+  selectedDate: string;
 }
 
-export default function MealSection({ title, emoji, accentColor }: MealSectionProps) {
+export default function MealSection({ title, emoji, accentColor, selectedDate }: MealSectionProps) {
   const [items, setItems] = useState<MealItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [sectionImage, setSectionImage] = useState<string | null>(null);
@@ -19,13 +20,13 @@ export default function MealSection({ title, emoji, accentColor }: MealSectionPr
   const mealType = title.toLowerCase().replace(' ', '_');
 
   useEffect(() => {
-    loadMealData();
-  }, []);
+    setIsLoading(true);
+    loadMealData().finally(() => setIsLoading(false));
+  }, [selectedDate]);
 
   const loadMealData = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const entries = await api.getMealEntriesByDate(today);
+      const entries = await api.getMealEntriesByDate(selectedDate);
       const entry = entries.find(e => e.mealType === mealType);
       
       if (entry) {
@@ -33,8 +34,10 @@ export default function MealSection({ title, emoji, accentColor }: MealSectionPr
         setItems(entry.items);
         setSectionImage(entry.imageUrl);
       } else {
-        const newEntryId = await api.createMealEntry(today, mealType);
+        const newEntryId = await api.createMealEntry(selectedDate, mealType);
         setMealEntryId(newEntryId);
+        setItems([]);
+        setSectionImage(null);
       }
     } catch (error) {
       console.error('Error loading meal data:', error);
@@ -86,8 +89,8 @@ export default function MealSection({ title, emoji, accentColor }: MealSectionPr
   return (
     <div className={`p-6 rounded-xl shadow-lg mb-6 ${accentColor} relative`}>
       {isLoading && (
-        <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-xl">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="fixed inset-0 bg-white/75 flex items-center justify-center z-50">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div>
         </div>
       )}
       
