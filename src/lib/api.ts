@@ -104,4 +104,34 @@ export const api = {
         })),
     }));
   },
+
+  async getMealEntriesByDateAndType(date: string, mealType: string): Promise<MealEntry[]> {
+    const { data: entries, error: entriesError } = await supabase
+      .from('meal_entries')
+      .select('*')
+      .eq('date', date)
+      .eq('meal_type', mealType);
+
+    if (entriesError) throw entriesError;
+
+    const { data: items, error: itemsError } = await supabase
+      .from('meal_items')
+      .select('*')
+      .in('meal_entry_id', entries.map(entry => entry.id));
+
+    if (itemsError) throw itemsError;
+
+    return entries.map(entry => ({
+      id: entry.id,
+      date: entry.date,
+      mealType: entry.meal_type,
+      imageUrl: entry.image_url,
+      items: items
+        .filter(item => item.meal_entry_id === entry.id)
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+        })),
+    }));
+  },
 };
